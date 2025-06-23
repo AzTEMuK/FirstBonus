@@ -1,44 +1,26 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"main/browser"
+	"main/config"
 	"net/http"
-	"os/exec"
-	"runtime"
 )
 
 func main() {
+	config.Load("config.yaml")
+	cfg := config.Get()
+
+	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
+
 	fs := http.FileServer(http.Dir("./static"))
 	http.Handle("/", fs)
 
-	port := "8080"
-	log.Printf("Сервер запущен на http://localhost:%s\n", port)
-	go openBrowser("http://localhost:" + port)
+	log.Printf("Сервер запущен на http://%s\n", addr)
+	go browser.Open("http://" + addr)
 
-	err := http.ListenAndServe(":"+port, nil)
-	if err != nil {
+	if err := http.ListenAndServe(addr, nil); err != nil {
 		log.Fatal(err)
-	}
-}
-
-func openBrowser(url string) {
-	var cmd string
-	var args []string
-
-	switch runtime.GOOS {
-	case "windows":
-		cmd = "cmd"
-		args = []string{"/c", "start", url}
-	case "darwin":
-		cmd = "open"
-		args = []string{url}
-	default:
-		cmd = "xdg-open"
-		args = []string{url}
-	}
-
-	err := exec.Command(cmd, args...).Start()
-	if err != nil {
-		log.Printf("Ошибка открытия браузера: %v\n", err)
 	}
 }
